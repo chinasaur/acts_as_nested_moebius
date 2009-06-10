@@ -124,6 +124,13 @@ describe MoebiusInterval do
     MoebiusInterval.new(@mps).should == @mi
   end
   
+  it 'should do double check of descendent checking using mp' do
+    MoebiusInterval.new('3.2.45.10').descendent_of?(MoebiusInterval.new('3.2')).should be_true
+    MoebiusInterval.new('3.2.45.10.3').descendent_of?(MoebiusInterval.new('3.2.45')).should be_true
+    
+    MoebiusInterval.new('3.2.45.10').descendent_of?(MoebiusInterval.new('3.3')).should be_false
+  end
+  
 end
 
 describe MoebiusInterval do
