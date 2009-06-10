@@ -61,8 +61,50 @@ describe MoebiusInterval do
     @mi.parent.child(21).should == @mi
   end
   
+  it 'should have this interesting property' do
+    next_sibling = @mi.next_sibling
+    first_child  = @mi.child(1)
+    [next_sibling.a, next_sibling.c].should == [first_child.a, first_child.c]
+  end
+  
   it 'should calculate child index of self' do
     @mi.child_index.should == 21
+  end
+  
+  it 'should check child/parent relationships' do
+    @mi.child(1).child_of?(@mi).should be_true
+    @mi.child(rand(100)+1).child_of?(@mi).should be_true
+    @mi.parent.parent_of?(@mi).should be_true
+  end
+  
+  it 'should not count a grandchild as a child' do
+    @mi.child(rand(100)+1).child(rand(100)).child_of?(@mi).should be_false
+  end
+  
+  it 'should count a grandchild as a descendent' do
+    @mi.child(rand(100)+1).child(rand(100)+1).descendent_of?(@mi).should be_true
+  end
+  
+  it 'should count a child as a descendent' do
+    @mi.child(rand(100)+1).descendent_of?(@mi).should be_true
+  end
+  
+  it 'should count first child as descendent due to semi-open interval' do
+    @mi.child(1).descendent_of?(@mi).should be_true
+  end
+  
+  it 'should count descendents correctly even though interval reverses at each level' do
+    @mi.child(1).descendent_of?(@mi).should be_true
+    @mi.child(1).child(1).descendent_of?(@mi.child(1)).should be_true
+  end
+  
+  it 'should handle funny edge case of first child versus next sibling correctly' do
+    @mi.next_sibling.descendent_of?(@mi).should be_false
+  end
+  
+  it 'should count parent and grandparent as ancestors' do
+    @mi.parent.ancestor_of?(@mi).should        be_true
+    @mi.parent.parent.ancestor_of?(@mi).should be_true
   end
   
   it 'should be able to check validity of child index' do

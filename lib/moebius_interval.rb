@@ -42,6 +42,16 @@ module ChinasaurLi
           other.is_a?(self.class) and to_a == other.to_a
         end
         
+        # This is tricky and important.  <, >, <=, >= all work only on the
+        # rational encoding of the MI, which takes only mi.a and mi.c and treats
+        # them as rational number a/c.
+        # I defined these comparisons using cross multiplication rather than
+        # division to avoid generating floats
+        def <(other); a*other.c < other.a*c; end
+        def >(other); a*other.c > other.a*c; end
+        def <=(other); a*other.c <= other.a*c; end
+        def >=(other); a*other.c >= other.a*c; end
+        
         def root?
           to_a == [a, 1, 1, 0]
         end
@@ -98,6 +108,44 @@ module ChinasaurLi
             mp.unshift(mi.child_index)
           end
           mp
+        end
+        
+        def level
+          materialized_path.size
+        end
+        
+        def child_of?(other)
+          parent == other
+        end
+        
+        def parent_of?(other)
+          other.child_of?(self)
+        end
+        
+        # < and <= consider only the MI's rational encoding: a/c (see notes
+        # above on <, >, <=, >=)
+        def descendent_of?(other)
+          # Guard against tricky edge case; rational encoding of first child and next sibling is the same!
+          # The == here includes full MI, below <= includes only the rational encoding.
+          return false if self == other.next_sibling
+          
+          # Direction of descendents interval reverses at each level!
+          case other.determinant
+            when -1 then return (other              <  self and self <= other.next_sibling)
+            when  1 then return (other.next_sibling <= self and self <  other)
+          end
+        end
+        
+        def ancestor_of?(other)
+          other.descendent_of?(self)
+        end
+        
+        def succ
+          next_sibling
+        end
+        
+        def <=>(other)
+          materialized_path <=> other.materialized_path
         end
         
         class << self
