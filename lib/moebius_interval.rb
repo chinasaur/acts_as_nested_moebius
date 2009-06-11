@@ -9,7 +9,8 @@ module ChinasaurLi
         
         def initialize(*args)
           if (args.size == 1 or args.size == 2) and args.all?{|arg|arg.is_a?(String)}
-            @encoding = self.class.mi_array_from_materialized_path_string(*args)
+            path = klass.string_to_path(*args)
+            @encoding = klass.mi_array_from_materialized_path(path)
           else
             args.flatten!
             raise TypeError unless mi_array?(args)
@@ -30,16 +31,22 @@ module ChinasaurLi
           a*d - b*c
         end
         
+        # Simple 2x2 matrix inversion
+        def inverse
+          det = determinant
+          [d/det, -b/det, -c/det, a/det]
+        end
+        
         def to_a
           @encoding
         end
         
         def dup
-          self.class.new(*@encoding)
+          new(*@encoding)
         end
         
         def ==(other)
-          other.is_a?(self.class) and to_a == other.to_a
+          other.is_a?(klass) and to_a == other.to_a
         end
         
         # This is tricky and important.  <, >, <=, >= all work only on the
@@ -52,22 +59,37 @@ module ChinasaurLi
         def <=(other); a*other.c <= other.a*c; end
         def >=(other); a*other.c >= other.a*c; end
         
+        # These are some nasty special cases that have to be handled carefully!
         def root?
           to_a == [a, 1, 1, 0]
         end
         
+        def path_x_1?
+          to_a == [a, a-1, 1, 1]
+        end
+        
+        def path_1_x?
+          to_a == [a, 1, a-1, 1]
+        end
+        
+        def path_x_1_x?
+          to_a == [a, b, child_index+1, 1]
+        end
+        
         def parent
-          return nil if root?
-          self.class.new([b, a % b, d, c % d])
+          return nil               if root?
+          return new(b, 1, 1, 0)   if path_x_1? or path_1_x? # Nasty special cases
+          return new(b, b-1, 1, 1) if path_x_1_x?            # Nasty special case
+          new(b, a%b, d, c%d)
         end
         
         # indexes begin at 1, not 0
-        # Could use self.class.mmult and self.class.mi_array_from_path_fragment,
+        # Could use klass.mmult and klass.mi_array_from_path_fragment,
         # but this is a bit more direct.
         def child(index)
           index = index.to_i
           raise ArgumentError unless index > 0
-          self.class.new(b + a*index, a, d + c*index, c)
+          new(b + a*index, a, d + c*index, c)
         end
         
         def children(indexes)
@@ -77,18 +99,19 @@ module ChinasaurLi
         end
         
         def next_sibling
-          self.class.new(a+b, b, c+d, d)
+          new(a+b, b, c+d, d)
         end
         
         def prev_sibling
           return nil if child_index == 1
-          self.class.new([a-b, b, c-d, d])
+          new([a-b, b, c-d, d])
         end
         
         # This does not guarantee that self is valid, so should check
         # self.child_index_valid?() first if this is important.
         def child_index
-          (a / b).floor
+          return c if path_x_1? or path_1_x? # Nasty special cases
+          a / b
         end
         
         def child_index_valid?
@@ -133,11 +156,45 @@ module ChinasaurLi
           case other.determinant
             when -1 then return (other              <  self and self <= other.next_sibling)
             when  1 then return (other.next_sibling <= self and self <  other)
+            else raise
           end
         end
         
         def ancestor_of?(other)
           other.descendent_of?(self)
+        end
+        
+        def select_descendents(*mis)
+          case determinant
+            when -1 then mis.select { |mi| mi != next_sibling and self         <  mi and mi <= next_sibling }
+            when  1 then mis.select { |mi| mi != next_sibling and next_sibling <= mi and mi <  self}
+            else raise
+          end
+        end
+        
+        ### Could improve...
+        def select_ancestors(*mis)
+          mis.select{ |mi| self.descendent_of?(mi) }
+        end
+        
+        # See http://arxiv.org/abs/cs.DB/0402051 heading 7. The receiver is
+        # taken to be the head of the subtree to move. The position to move to
+        # is given as a new self node. The remaining arguments are assumed to
+        # represent the entire tree of existing nodes. Receiver and descendents
+        # are moved, all other nodes are left alone.
+        def move_subtree(new_self, *tree)
+          tree.flatten!
+          raise ArgumentError if tree.any?{|mi| mi == new_self} # Cannot move to a position that already exists
+          
+          inv = self.inverse
+          tree.each do |mi|
+            next unless mi.descendent_of?(self) ### Could make this check more efficient...
+            moved = klass.mmult(new_self.to_a, inv, mi.to_a) # Calculate new position
+            mi.instance_variable_set(:@encoding, moved)      # Set new position
+          end
+          @encoding = new_self.to_a # Move self to new_self
+          
+          tree
         end
         
         def succ
@@ -179,9 +236,8 @@ module ChinasaurLi
             mmult(*arrays)
           end
           
-          def mi_array_from_materialized_path_string(path_str, delim='.')
-            path = path_str.split(delim).collect{|frag|frag.to_i}
-            mi_array_from_materialized_path(path)
+          def string_to_path(path_str, delim='.')
+            path_str.split(delim).collect{|frag|frag.to_i}
           end
           
           private
@@ -196,7 +252,17 @@ module ChinasaurLi
         private
         
         def mi_array?(a=self)
-          self.class.mi_array?(a)
+          klass.mi_array?(a)
+        end
+        
+        # Shorthand...
+        def klass
+          self.class
+        end
+        
+        # Shorthand
+        def new(*args)
+          self.class.new(*args)
         end
         
       end

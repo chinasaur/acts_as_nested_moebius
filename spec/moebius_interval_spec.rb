@@ -32,6 +32,10 @@ describe MoebiusInterval do
     MoebiusInterval.new(1, 2, 3, 4).determinant_valid?.should be_false
   end
   
+  it 'should calculate inverse correctly' do
+    MoebiusInterval.mmult(@mi.inverse, @mi.to_a).should == [1, 0, 0, 1]
+  end
+  
   it 'should be dupable' do
     @mi.should == @mi.dup
     @mi.equal?(@mi.dup).should be_false
@@ -78,7 +82,7 @@ describe MoebiusInterval do
   end
   
   it 'should not count a grandchild as a child' do
-    @mi.child(rand(100)+1).child(rand(100)).child_of?(@mi).should be_false
+    @mi.child(rand(100)+1).child(rand(100)+1).child_of?(@mi).should be_false
   end
   
   it 'should count a grandchild as a descendent' do
@@ -129,6 +133,40 @@ describe MoebiusInterval do
     MoebiusInterval.new('3.2.45.10.3').descendent_of?(MoebiusInterval.new('3.2.45')).should be_true
     
     MoebiusInterval.new('3.2.45.10').descendent_of?(MoebiusInterval.new('3.3')).should be_false
+  end
+  
+  it 'should be able to select descendents/ancestors from a collection' do
+    mid1 = @mi.child(1).child(1)
+    mid2 = @mi.child(rand(100)+1)
+    mid3 = @mi.child(rand(100)+1)
+    mia1 = @mi.parent
+    mix1 = @mi.parent.next_sibling
+    @mi.select_descendents(mid1, mid2, mid3, mia1, mix1).should == [mid1, mid2, mid3]
+    @mi.select_ancestors(mid1, mid2, mid3, mia1, mix1).should   == [mia1]
+  end
+  
+  it 'should move single nodes correctly' do
+    destination = MoebiusInterval.new(1, 1, 1, 0)
+    @mi.move_subtree(destination, [@mi])
+    @mi.should == destination
+  end
+  
+  it 'should move subtrees correctly' do
+    mid1 = @mi.child(1).child(1)
+    mid2 = @mi.child(rand(100)+2)
+    mid2_i = mid2.child_index
+    mix1 = @mi.parent.next_sibling
+    mix1_mp = mix1.materialized_path
+    tree = [@mi, mid1, mid2, mix1]
+    destination_path = [1, 1, 4, 6, 7]
+    destination = MoebiusInterval.from_materialized_path(destination_path)
+    
+    @mi.move_subtree(destination, tree)
+    
+    @mi.should == destination
+    mid1.materialized_path.should == destination_path + [1, 1]
+    mid2.materialized_path.should == destination_path + [mid2_i]
+    mix1.materialized_path.should == mix1_mp
   end
   
 end
