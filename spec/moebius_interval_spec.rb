@@ -81,6 +81,12 @@ describe MoebiusInterval do
     @mi.parent.parent_of?(@mi).should be_true
   end
   
+  it 'should check sibling relationships' do
+    @mi.next_sibling.sibling_of?(@mi).should be_true
+    @mi.prev_sibling.sibling_of?(@mi).should be_true
+    @mi.parent.sibling_of?(@mi).should be_false
+  end
+  
   it 'should not count a grandchild as a child' do
     @mi.child(rand(100)+1).child(rand(100)+1).child_of?(@mi).should be_false
   end

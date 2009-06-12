@@ -145,6 +145,12 @@ module ChinasaurLi
           other.child_of?(self)
         end
         
+        # Ususally it's sufficient just to check whether the [b,d] are equal,
+        # but not always, due to the first child versus next sibling ambiguity
+        def sibling_of?(other)
+          parent == other.parent
+        end
+        
         # < and <= consider only the MI's rational encoding: a/c (see notes
         # above on <, >, <=, >=)
         def descendent_of?(other)
