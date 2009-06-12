@@ -1,9 +1,12 @@
 require 'moebius_interval'
+require 'moebius_interval_ar'
 
 module ChinasaurLi
   module Acts
     module NestedMoebius
-      
+      # Extend this internal class (defined in moebius_interval.rb) with AR SQL
+      # generating methods defined in moebius_interval_ar.rb
+      MoebiusInterval.instance_eval{include(MoebiusIntervalAr)}
       
       def self.included(base)
         base.extend(ClassMethods)
@@ -17,7 +20,7 @@ module ChinasaurLi
           :b => 'nm_b',
           :c => 'nm_c',
           :d => 'nm_d',
-          :p => 'parent_id',
+          :p => 'nm_parent_id',
           :mprefix => ''
         }
         def acts_as_nested_moebius(opts={})
