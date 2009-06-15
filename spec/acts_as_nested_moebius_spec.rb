@@ -19,7 +19,7 @@ ActiveRecord::Schema.define(:version => 1) do
     t.integer :nm_b
     t.integer :nm_c
     t.integer :nm_d
-    t.integer :nm_parent_id
+    t.integer :parent_id
     
     t.integer :column_a
   end

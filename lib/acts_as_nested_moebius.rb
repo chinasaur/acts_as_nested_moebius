@@ -3,6 +3,9 @@ require 'moebius_interval_ar'
 
 module ChinasaurLi
   module Acts
+    
+    # You can tell it about parent_id if you are using that in parallel, but it
+    # will not declare belongs_to parent for you.
     module NestedMoebius
       # Extend this internal class (defined in moebius_interval.rb) with AR SQL
       # generating methods defined in moebius_interval_ar.rb
@@ -20,7 +23,7 @@ module ChinasaurLi
           :b => 'nm_b',
           :c => 'nm_c',
           :d => 'nm_d',
-          :p => 'nm_parent_id',
+          :p => 'parent_id',
           :mprefix => ''
         }
         def acts_as_nested_moebius(opts={})
@@ -47,7 +50,11 @@ module ChinasaurLi
             
             opts = acts_as_nested_moebius_options
             array = [ self[opts[:a]], self[opts[:b]], self[opts[:c]], self[opts[:d]] ]
-            @moebius_interval = MoebiusInterval.new(*array) if MoebiusInterval.mi_array?(array)
+            if MoebiusInterval.mi_array?(array)
+              mi = MoebiusInterval.new(*array)
+              mi.ar_object = self
+              @moebius_interval = mi
+            end
           end
           
           def moebius_interval=(arg)
@@ -63,6 +70,7 @@ module ChinasaurLi
             
             opts = acts_as_nested_moebius_options
             self[opts[:a]], self[opts[:b]], self[opts[:c]], self[opts[:d]] = a, b, c, d
+            mi.ar_object = self # Will throw an error if mi is already assigned to another object...
             @moebius_interval = mi
           end
           
@@ -84,7 +92,9 @@ module ChinasaurLi
               raise ArgumentError
             end
             
-            @moebius_interval = MoebiusInterval.from_materialized_path(mp)
+            mi = MoebiusInterval.from_materialized_path(mp)
+            mi.ar_object = self
+            @moebius_interval = mi
             @nm_materialized_path = mp
           end
           

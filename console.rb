@@ -3,6 +3,7 @@ orig_stdout = $stdout
 $stdout = File.new('NUL', 'w')
 
 require 'rubygems'
+gem 'activerecord', '= 2.0.2'
 require 'active_record'
 
 $: << File.join(File.dirname(__FILE__), '..', 'lib')
