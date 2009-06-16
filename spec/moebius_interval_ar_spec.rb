@@ -80,19 +80,21 @@ end
 describe 'with basic network' do
   before(:each) do
     @valid = [4913, 225, 1594, 73]
-    @mi = MoebiusInterval.new(@valid)
-    @mic = @mi.child(1)
+    @mi   = MoebiusInterval.new(@valid)
+    @mic  = @mi.child(1)
+    @mic2 = @mi.child(2)
     @migc = @mic.child(1)
-    @mip = @mi.parent
+    @mip  = @mi.parent
     @mins = @mi.next_sibling
     @n   = Node.new(:moebius_interval => @mi,   :name => @mi.materialized_path.join('.'))
     @nc  = Node.new(:moebius_interval => @mic,  :name => @mic.materialized_path.join('.'))
+    @nc2 = Node.new(:moebius_interval => @mic2, :name => @mic2.materialized_path.join('.'))
     @ngc = Node.new(:moebius_interval => @migc, :name => @migc.materialized_path.join('.'))
     @np  = Node.new(:moebius_interval => @mip,  :name => @mip.materialized_path.join('.'))
     @nns = Node.new(:moebius_interval => @mins, :name => @mins.materialized_path.join('.'))
-    
     @n.save!
     @nc.save!
+    @nc2.save!
     @ngc.save!
     @np.save!
     @nns.save!
@@ -108,7 +110,37 @@ describe 'with basic network' do
   end
   
   it 'should find descendents via SQL query on ar_object' do
-    @mi.find_descendents.sort.should == [@nc, @ngc].sort
+    @mi.find_descendents.sort.should == [@nc, @nc2, @ngc].sort
+    @mic.find_descendents.should == [@ngc]
+    @mip.find_descendents.sort.should == [@n, @nns, @nc, @nc2, @ngc].sort
+    @mins.find_descendents.should == []
+  end
+  
+  it 'should find ancestors via SQL query on ar_object' do
+    @mi.find_ancestors.should == [@np]
+    @mic2.find_ancestors.sort.should == [@np, @n].sort
+  end
+  
+  it 'should return ancestors in reverse-age order' do
+    @migc.find_ancestors.should == [@nc, @n, @np]
+  end
+  
+  it 'should be able to override order' do
+    @migc.find_ancestors(:order => 'id').should == [@n, @nc, @np]
+  end
+  
+  it 'should find siblings (including self) via SQL query on ar_object' do
+    @mi.find_siblings.sort.should == [@n, @nns].sort
+    @mic.find_siblings.sort.should == [@nc, @nc2].sort
+  end
+  
+  it 'should return siblings in child index order' do
+    @mi.find_siblings.should == [@n, @nns]
+    @mic.find_siblings.should == [@nc, @nc2]
+  end
+  
+  it 'should be able to override order' do
+    @mi.find_siblings(:order => 'nm_a DESC').should == [@nns, @n]
   end
   
 end

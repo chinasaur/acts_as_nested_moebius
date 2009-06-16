@@ -41,6 +41,27 @@ module ChinasaurLi
           ar_class.find(:all, find_opts)
         end
         
+        def find_ancestors(find_opts={})
+          fs_cond = "NOT (#{ar_b}=#{b} AND #{ar_d}=#{d})"
+          
+          # Direction of intervals reverses at each level!
+          forward_cond = "(#{ar_a}*#{ar_d} < #{ar_b}*#{ar_c}) AND ( #{ar_a}         *#{c} <  #{a}* #{ar_c})          AND (#{a}*(#{ar_c}+#{ar_d}) <= (#{ar_a}+#{ar_b})*#{c})"
+          reverse_cond = "(#{ar_a}*#{ar_d} > #{ar_b}*#{ar_c}) AND ((#{ar_a}+#{ar_b})*#{c} <= #{a}*(#{ar_c}+#{ar_d})) AND (#{a}* #{ar_c}          <   #{ar_a}         *#{c})"
+          interval_cond = "(#{forward_cond}) OR (#{reverse_cond})"
+          
+          find_opts[:conditions] = ar_class.merge_conditions(find_opts[:conditions], interval_cond, fs_cond)
+          find_opts[:order] ||= "#{ar_a} DESC"
+          ar_class.find(:all, find_opts)
+        end
+        
+        # Includes self
+        def find_siblings(find_opts={})
+          sib_cond = "#{ar_b}=#{b} AND #{ar_d}=#{d}"
+          find_opts[:conditions] = ar_class.merge_conditions(find_opts[:conditions], sib_cond)
+          find_opts[:order] ||= ar_a
+          ar_class.find(:all, find_opts)
+        end
+        
       end
       
     end
