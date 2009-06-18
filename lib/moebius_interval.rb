@@ -11,11 +11,15 @@ module ChinasaurLi
           if (args.size == 1 or args.size == 2) and args.all?{|arg|arg.is_a?(String)}
             path = klass.string_to_path(*args)
             @encoding = klass.mi_array_from_materialized_path(path)
-          else
-            args.flatten!
-            raise TypeError unless mi_array?(args)
-            @encoding = args
+            return
           end
+          
+          args.flatten!
+          if args.size == 1 and args[0].respond_to?(:to_a)
+            args = args[0].to_a
+          end
+          raise TypeError unless mi_array?(args)
+          @encoding = args
         end
         
         def a; @encoding[0]; end

@@ -27,6 +27,10 @@ describe MoebiusInterval do
     @mi = MoebiusInterval.new(*@valid)
   end
   
+  it 'should allow initialization with MI' do
+    MoebiusInterval.new(@mi).should == @mi
+  end
+  
   it 'should validate determinants' do
     @mi.determinant_valid?.should                             be_true
     MoebiusInterval.new(1, 2, 3, 4).determinant_valid?.should be_false

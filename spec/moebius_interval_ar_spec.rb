@@ -21,8 +21,6 @@ ActiveRecord::Schema.define(:version => 1) do
     t.integer :nm_c
     t.integer :nm_d
     t.integer :parent_id
-    
-    t.integer :column_a
   end
 end
 
@@ -141,6 +139,17 @@ describe 'with basic network' do
   
   it 'should be able to override order' do
     @mi.find_siblings(:order => 'nm_a DESC').should == [@nns, @n]
+  end
+  
+  it 'should be able to move a node with its descendent subtree' do
+    @mi.move_to('2.2')
+    @n.moebius_interval(reload=true).materialized_path.should == [2, 2]
+    @nc.reload
+    @nc2.reload
+    @ngc.reload
+    @nc.moebius_interval(reload=true).materialized_path.should == [2, 2, 1]
+    @nc2.moebius_interval(reload=true).materialized_path.should == [2, 2, 2]
+    @ngc.moebius_interval(reload=true).materialized_path.should == [2, 2, 1, 1]
   end
   
 end

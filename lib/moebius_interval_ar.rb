@@ -62,6 +62,24 @@ module ChinasaurLi
           ar_class.find(:all, find_opts)
         end
         
+        # Moves current node to new position, bringing along entire descendent tree.
+        # The new position can be specified in any way that MoebiusInterval.new()
+        # accepts.
+        def move_to(new_position)
+          raise ArgumentError unless ar_object
+          
+          new_mi = MoebiusInterval.new(new_position)
+          raise ArgumentError if new_mi.descendent_of?(self)
+          
+          move_matrix = MoebiusInterval.mmult(new_mi.to_a, self.inverse)
+          subtree = [ar_object] + find_descendents
+          subtree.each do |to_move|
+            moved_a = MoebiusInterval.mmult(move_matrix, to_move.moebius_interval.to_a)
+            to_move.moebius_interval = MoebiusInterval.new(moved_a)
+            to_move.save!
+          end
+        end
+        
       end
       
     end
